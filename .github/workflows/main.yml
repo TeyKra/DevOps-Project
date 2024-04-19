@@ -1,0 +1,62 @@
+name: CI to Azure CR # Nom du workflow GitHub Actions
+
+on: # Déclencheur du workflow
+  push: 
+    branches: 
+      - main 
+
+jobs: # Définition des jobs à exécuter
+  build-and-push: # Job pour construire et pousser l'image Docker
+    runs-on: ubuntu-latest # Dernière version d'Ubuntu comme runner
+    steps: 
+    - uses: actions/checkout@v2 # Étape pour extraire le code source du repository
+
+    - name: Set up Docker Buildx # Configure Docker Buildx 
+      uses: docker/setup-buildx-action@v1
+
+    - name: Log in to Azure Container Registry # Se connecter à Azure Container Registry
+      uses: docker/login-action@v1
+      with: # Utilise les secrets pour s'authentifier
+        registry: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+
+    - name: Build and push Docker image to ACR # Construit et pousse l'image Docker vers ACR
+      uses: docker/build-push-action@v2
+      with: # Paramètres pour la construction et la poussée
+        context: . # Contexte de build (répertoire courant)
+        file: ./Dockerfile # Emplacement du Dockerfile
+        push: true # Active la poussée de l'image après la construction
+        tags: ${{ secrets.REGISTRY_LOGIN_SERVER }}/20200511:v1 # Tag de l'image à pousser
+      env: # Définit les variables d'environnement pour le build
+        OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }} # Clé API pour le service météo
+
+    - name: Run Hadolint # Exécute Hadolint pour vérifier la qualité du Dockerfile
+      uses: hadolint/hadolint-action@v1.6.0
+      with:
+        dockerfile: Dockerfile
+        
+  deploy: # Job pour déployer l'application
+    needs: build-and-push # Ce job a besoin que le job 'build-and-push' soit terminé
+    runs-on: ubuntu-latest 
+    steps: 
+    - name: Checkout code # Étape pour extraire le code source du repository
+      uses: actions/checkout@v2
+
+    - name: 'Login via Azure CLI' # Se connecter à Azure via la ligne de commande
+      uses: azure/login@v1
+      with: # Utilise les secrets pour l'authentification
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: 'Deploy to Azure Container Instance' # Déploie sur Azure Container Instance
+      uses: azure/aci-deploy@v1
+      with: # Paramètres pour le déploiement
+        resource-group: ADDA84-CTP # Groupe de ressources où déployer
+        dns-name-label: devops-20200511 # Label DNS pour l'instance
+        image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/20200511:v1 # Image à déployer
+        name: 20200511 # Nom de l'instance ACI
+        location: 'francecentral' # Emplacement géographique pour le déploiement
+        registry-login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }} # Serveur de connexion au registre
+        registry-username: ${{ secrets.REGISTRY_USERNAME }} # Nom d'utilisateur pour le registre
+        registry-password: ${{ secrets.REGISTRY_PASSWORD }} # Mot de passe pour le registre
+        secure-environment-variables: OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }} # Variable d'environnement sécurisée pour la clé API
