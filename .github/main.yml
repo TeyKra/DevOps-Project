@@ -1,0 +1,48 @@
+# Nom de votre workflow
+name: CI to Docker Hub
+
+# Déclencher le workflow sur les événements de push sur la branche 'main'
+on:
+  push:
+    branches:
+      - main
+
+# Définir les jobs que le workflow exécutera
+jobs:
+  # Nom du job
+  build:
+    # Indiquer à GitHub Actions de lancer ce job sur un runner Ubuntu le plus récent disponible
+    runs-on: ubuntu-latest
+
+    # Définir les étapes du job
+    steps:
+    - uses: actions/checkout@v2
+      # Utiliser l'action checkout pour cloner le code source du dépôt dans le runner
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+      # Configurer Docker Buildx (un outil de construction Docker qui permet de construire des images multi-architectures)
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }} # Utiliser le nom d'utilisateur Docker stocké dans les secrets GitHub
+        password: ${{ secrets.DOCKER_PASSWORD }} # Utiliser le mot de passe Docker stocké dans les secrets GitHub
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v2
+      with:
+        context: . # Indiquer le contexte de build comme le répertoire actuel
+        file: ./Dockerfile # Indiquer le chemin vers le Dockerfile
+        push: true # Pousser l'image vers un registre après la construction
+        tags: mgn94/monappweather:latest # Étiqueter l'image construite
+      env:
+        OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+        # Passer la clé API OpenWeather en tant que variable d'environnement
+
+    - name: Run Hadolint
+      uses: hadolint/hadolint-action@v1.6.0
+      with:
+        dockerfile: Dockerfile
+        # Exécuter Hadolint, un linter pour Dockerfiles, pour s'assurer que le Dockerfile suit les meilleures pratiques
+
