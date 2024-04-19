@@ -1,0 +1,32 @@
+#cloud-config
+# Indique que ce fichier est un script cloud-init.
+
+# Met à jour tous les paquets du système avant d'installer de nouveaux paquets.
+package_upgrade: true
+
+# Liste des paquets à installer qui sont nécessaires pour installer Docker.
+packages:
+  - apt-transport-https       # Permet à APT d'utiliser des repos sur HTTPS
+  - ca-certificates           # Permet à la machine de vérifier la sécurité des certificats SSL
+  - curl                      # Outil de transfert de données utilisé pour les commandes ci-dessous
+  - software-properties-common # Fournit un outil de gestion des sources de logiciels
+  - lsb-release               # Fournit des informations sur la distribution Linux
+
+# Liste des commandes à exécuter pour installer Docker.
+runcmd:
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    # Télécharge la clé GPG officielle de Docker et l'ajoute au système de gestion des paquets,
+    # nécessaire pour s'assurer que les paquets téléchargés sont authentiques.
+
+  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    # Ajoute le dépôt officiel de Docker aux sources APT de Ubuntu, pour la version stable de Docker,
+    # et pour l'architecture amd64.
+
+  - sudo apt-get update
+    # Met à jour l'index des paquets après l'ajout du nouveau dépôt Docker.
+
+  - sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+    # Installe Docker, Docker CLI et containerd, qui sont nécessaires pour exécuter des conteneurs Docker.
+
+  - sudo usermod -aG docker $USER
+    # Ajoute l'utilisateur actuel au groupe Docker, permettant d'exécuter des commandes Docker sans sudo.
