@@ -5,7 +5,7 @@ This repository contains four branches, each dedicated to a specific DevOps proj
 ## Branches and Projects
 
 1. **DEVOPS - TP1: Docker**
-    - This branch contains all the files and resources needed for the Docker project.
+    - This branch contains all the files and resources needed for the Docker project. 
    
 2. **DEVOPS - TP2: Github Action**
     - This branch is dedicated to workflows and configurations using Github Actions.
